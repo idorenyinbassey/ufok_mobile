@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import { navigationRef } from '../navigation/RootNavigator';
+import { navigationRef } from '../navigation/navigationRef';
 
 const api = axios.create({
   baseURL: process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://ufok.ng/api/v1',

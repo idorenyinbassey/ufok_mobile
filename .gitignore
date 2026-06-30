@@ -3,6 +3,7 @@ dist/
 ios/
 .env
 *.local
+.expo/
 # Android build outputs only — project source is committed so it opens in Android Studio
 android/.gradle/
 android/app/build/

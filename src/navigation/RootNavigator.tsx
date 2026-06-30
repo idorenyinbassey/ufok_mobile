@@ -1,5 +1,5 @@
-import React, { createRef } from 'react';
-import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from '../stores/auth';
 import AuthStack from './AuthStack';
@@ -10,9 +10,8 @@ import ProfileEditScreen from '../screens/ProfileEditScreen';
 import WalletScreen from '../screens/WalletScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import KycScreen from '../screens/KycScreen';
+import { navigationRef } from './navigationRef';
 import type { RootStackParams } from './types';
-
-export const navigationRef = createRef<NavigationContainerRef<RootStackParams>>();
 
 const Stack = createNativeStackNavigator<RootStackParams>();
 
