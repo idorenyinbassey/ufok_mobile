@@ -10,6 +10,14 @@ import ProfileEditScreen from '../screens/ProfileEditScreen';
 import WalletScreen from '../screens/WalletScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import KycScreen from '../screens/KycScreen';
+import InspectionScreen from '../screens/InspectionScreen';
+import SubscriptionScreen from '../screens/SubscriptionScreen';
+import SavedScreen from '../screens/SavedScreen';
+import ReferralScreen from '../screens/ReferralScreen';
+import LeaderboardScreen from '../screens/LeaderboardScreen';
+import AccountSettingsScreen from '../screens/AccountSettingsScreen';
+import CreatePropertyScreen from '../screens/CreatePropertyScreen';
+import EditPropertyScreen from '../screens/EditPropertyScreen';
 import { navigationRef } from './navigationRef';
 import type { RootStackParams } from './types';
 
@@ -57,6 +65,46 @@ export default function RootNavigator() {
               name="Kyc"
               component={KycScreen}
               options={{ headerShown: true, title: 'Identity Verification', headerBackTitle: '' }}
+            />
+            <Stack.Screen
+              name="Inspections"
+              component={InspectionScreen}
+              options={{ headerShown: true, title: 'Inspections', headerBackTitle: '' }}
+            />
+            <Stack.Screen
+              name="Subscription"
+              component={SubscriptionScreen}
+              options={{ headerShown: true, title: 'Subscription', headerBackTitle: '' }}
+            />
+            <Stack.Screen
+              name="Saved"
+              component={SavedScreen}
+              options={{ headerShown: true, title: 'Saved Properties', headerBackTitle: '' }}
+            />
+            <Stack.Screen
+              name="Referrals"
+              component={ReferralScreen}
+              options={{ headerShown: true, title: 'Referrals', headerBackTitle: '' }}
+            />
+            <Stack.Screen
+              name="Leaderboard"
+              component={LeaderboardScreen}
+              options={{ headerShown: true, title: 'Leaderboard', headerBackTitle: '' }}
+            />
+            <Stack.Screen
+              name="AccountSettings"
+              component={AccountSettingsScreen}
+              options={{ headerShown: true, title: 'Account Settings', headerBackTitle: '' }}
+            />
+            <Stack.Screen
+              name="CreateProperty"
+              component={CreatePropertyScreen}
+              options={{ headerShown: true, title: 'New Listing', headerBackTitle: '' }}
+            />
+            <Stack.Screen
+              name="EditProperty"
+              component={EditPropertyScreen}
+              options={{ headerShown: true, title: 'Edit Listing', headerBackTitle: '' }}
             />
           </>
         ) : (

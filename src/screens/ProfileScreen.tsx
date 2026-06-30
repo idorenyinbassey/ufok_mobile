@@ -5,6 +5,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../stores/auth';
+import api from '../api/client';
 
 interface MenuItemProps {
   icon: React.ComponentProps<typeof Ionicons>['name'];
@@ -44,10 +45,20 @@ export default function ProfileScreen() {
   const handleLogout = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign Out', style: 'destructive', onPress: async () => { await logout(); } },
+    ]);
+  };
+
+  const handleLogoutAll = () => {
+    Alert.alert('Sign Out All Devices', 'This will sign you out everywhere. Continue?', [
+      { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Sign Out',
+        text: 'Sign Out All',
         style: 'destructive',
         onPress: async () => {
+          try {
+            await api.post('/auth/logout-all');
+          } catch {}
           await logout();
         },
       },
@@ -105,13 +116,24 @@ export default function ProfileScreen() {
         <Text className="text-gray-400 text-xs font-semibold uppercase tracking-wider px-5 py-2">Account</Text>
         <MenuItem icon="person-outline" label="Edit Profile" onPress={() => navigation.navigate('ProfileEdit')} />
         <MenuItem icon="wallet-outline" label="My Wallet" onPress={() => navigation.navigate('Wallet')} />
+        <MenuItem icon="heart-outline" label="Saved Properties" onPress={() => navigation.navigate('Saved')} />
         <MenuItem icon="notifications-outline" label="Notifications" onPress={() => navigation.navigate('Notifications')} />
         <MenuItem icon="shield-checkmark-outline" label="Identity Verification (KYC)" onPress={() => navigation.navigate('Kyc')} />
+        <MenuItem icon="calendar-outline" label="My Inspections" onPress={() => navigation.navigate('Inspections', {})} />
       </View>
 
-      {/* Support section */}
+      {/* Referrals & Rewards */}
       <View className="mt-4">
-        <Text className="text-gray-400 text-xs font-semibold uppercase tracking-wider px-5 py-2">Support</Text>
+        <Text className="text-gray-400 text-xs font-semibold uppercase tracking-wider px-5 py-2">Rewards</Text>
+        <MenuItem icon="people-outline" label="Referrals" onPress={() => navigation.navigate('Referrals')} />
+        <MenuItem icon="trophy-outline" label="Leaderboard" onPress={() => navigation.navigate('Leaderboard')} />
+        <MenuItem icon="star-outline" label="Subscription" onPress={() => navigation.navigate('Subscription')} />
+      </View>
+
+      {/* Settings */}
+      <View className="mt-4">
+        <Text className="text-gray-400 text-xs font-semibold uppercase tracking-wider px-5 py-2">Settings</Text>
+        <MenuItem icon="settings-outline" label="Account Settings" onPress={() => navigation.navigate('AccountSettings')} />
         <MenuItem
           icon="lock-closed-outline"
           label="HTTPS Secured Connection"
@@ -122,6 +144,7 @@ export default function ProfileScreen() {
       {/* Sign out */}
       <View className="mt-4 mb-10">
         <MenuItem icon="log-out-outline" label="Sign Out" onPress={handleLogout} danger />
+        <MenuItem icon="log-out-outline" label="Sign Out All Devices" onPress={handleLogoutAll} danger />
       </View>
     </ScrollView>
   );

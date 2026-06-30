@@ -79,6 +79,25 @@ export default function BrowseScreen() {
     setLoadingMore(false);
   };
 
+  const [saved, setSaved] = useState<Set<number>>(new Set());
+
+  const handleSave = async (id: number) => {
+    setSaved(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+    try {
+      await api.post(`/properties/${id}/save`);
+    } catch {
+      setSaved(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) { next.delete(id); } else { next.add(id); }
+        return next;
+      });
+    }
+  };
+
   const renderProperty = ({ item }: { item: Property }) => (
     <TouchableOpacity
       className="bg-white rounded-2xl mx-4 mb-4 overflow-hidden border border-gray-100"
@@ -101,6 +120,16 @@ export default function BrowseScreen() {
         <View className="absolute top-3 left-3 bg-primary-600 rounded-full px-2.5 py-1">
           <Text className="text-white text-xs font-semibold capitalize">{item.type}</Text>
         </View>
+        <TouchableOpacity
+          className="absolute top-3 right-3 bg-white/90 rounded-full w-8 h-8 items-center justify-center"
+          onPress={() => handleSave(item.id)}
+        >
+          <Ionicons
+            name={saved.has(item.id) ? 'heart' : 'heart-outline'}
+            size={16}
+            color={saved.has(item.id) ? '#dc2626' : '#6b7280'}
+          />
+        </TouchableOpacity>
       </View>
       <View className="p-4">
         <Text className="text-primary-600 font-bold text-lg">

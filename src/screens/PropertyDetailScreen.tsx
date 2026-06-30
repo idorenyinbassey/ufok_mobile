@@ -39,6 +39,8 @@ export default function PropertyDetailScreen({ route, navigation }: RootScreenPr
   const [loading, setLoading] = useState(true);
   const [imgIndex, setImgIndex] = useState(0);
   const [contacting, setContacting] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     api.get(`/properties/${slug}`)
@@ -46,6 +48,20 @@ export default function PropertyDetailScreen({ route, navigation }: RootScreenPr
       .catch(() => Alert.alert('Error', 'Could not load property.'))
       .finally(() => setLoading(false));
   }, [slug]);
+
+  const handleSave = async () => {
+    if (!property) return;
+    setSaving(true);
+    const newSaved = !saved;
+    setSaved(newSaved);
+    try {
+      await api.post(`/properties/${property.id}/save`);
+    } catch {
+      setSaved(!newSaved);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleContact = async () => {
     if (!property) return;
@@ -205,20 +221,45 @@ export default function PropertyDetailScreen({ route, navigation }: RootScreenPr
       </ScrollView>
 
       {!isOwner && isTenant && (
-        <View className="px-5 py-4 bg-white border-t border-gray-100">
+        <View className="px-5 py-4 bg-white border-t border-gray-100 gap-3">
+          <View className="flex-row gap-3">
+            <TouchableOpacity
+              className="flex-1 bg-primary-600 rounded-xl py-4 items-center"
+              onPress={handleContact}
+              disabled={contacting}
+            >
+              {contacting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <View className="flex-row items-center gap-2">
+                  <Ionicons name="chatbubble-outline" size={18} color="#fff" />
+                  <Text className="text-white font-bold text-base">Contact Lister</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="w-14 rounded-xl border border-gray-200 items-center justify-center"
+              onPress={handleSave}
+              disabled={saving}
+            >
+              <Ionicons
+                name={saved ? 'heart' : 'heart-outline'}
+                size={22}
+                color={saved ? '#dc2626' : '#6b7280'}
+              />
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity
-            className="bg-primary-600 rounded-xl py-4 items-center"
-            onPress={handleContact}
-            disabled={contacting}
+            className="w-full border border-primary-600 rounded-xl py-3.5 items-center"
+            onPress={() => navigation.navigate('Inspections', {
+              propertyId: property.id,
+              propertyTitle: property.title,
+            })}
           >
-            {contacting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <View className="flex-row items-center gap-2">
-                <Ionicons name="chatbubble-outline" size={18} color="#fff" />
-                <Text className="text-white font-bold text-base">Contact Lister</Text>
-              </View>
-            )}
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="calendar-outline" size={18} color="#16a34a" />
+              <Text className="text-primary-600 font-bold text-base">Book Inspection</Text>
+            </View>
           </TouchableOpacity>
         </View>
       )}

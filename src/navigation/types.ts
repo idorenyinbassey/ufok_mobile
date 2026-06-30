@@ -5,6 +5,7 @@ export type AuthStackParams = {
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
+  ResetPassword: { email?: string };
 };
 
 export type AppTabsParams = {
@@ -25,6 +26,14 @@ export type RootStackParams = {
   Wallet: undefined;
   Notifications: undefined;
   Kyc: undefined;
+  Inspections: { propertyId?: number; propertyTitle?: string };
+  Subscription: undefined;
+  Saved: undefined;
+  Referrals: undefined;
+  Leaderboard: undefined;
+  AccountSettings: undefined;
+  CreateProperty: undefined;
+  EditProperty: { id: number };
 };
 
 export type AuthScreenProps<T extends keyof AuthStackParams> = NativeStackScreenProps<AuthStackParams, T>;

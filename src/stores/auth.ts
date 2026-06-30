@@ -2,6 +2,21 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import api from '../api/client';
 
+async function registerFcmToken(): Promise<void> {
+  try {
+    // expo-notifications may not be installed yet; guard with dynamic require
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Notifications = require('expo-notifications');
+    const { status } = await Notifications.getPermissionsAsync();
+    const finalStatus = status === 'granted'
+      ? status
+      : (await Notifications.requestPermissionsAsync()).status;
+    if (finalStatus !== 'granted') return;
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    await api.post('/auth/fcm-token', { token, platform: 'expo' });
+  } catch {}
+}
+
 export interface User {
   id: number;
   name: string;
@@ -58,6 +73,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await SecureStore.setItemAsync('auth_token', token);
       await SecureStore.setItemAsync('auth_user', JSON.stringify(user));
       set({ token, user, loading: false });
+      registerFcmToken();
     } catch (err) {
       set({ loading: false });
       throw err;
@@ -72,6 +88,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await SecureStore.setItemAsync('auth_token', token);
       await SecureStore.setItemAsync('auth_user', JSON.stringify(user));
       set({ token, user, loading: false });
+      registerFcmToken();
     } catch (err) {
       set({ loading: false });
       throw err;

@@ -31,14 +31,20 @@ export default function ForgotPasswordScreen({ navigation }: AuthScreenProps<'Fo
           <Text className="text-4xl">📧</Text>
         </View>
         <Text className="text-2xl font-bold text-gray-900 mb-3 text-center">Check your email</Text>
-        <Text className="text-gray-500 text-center text-sm leading-relaxed mb-8">
-          If {email} is registered, we've sent a reset link. Check your inbox and spam folder.
+        <Text className="text-gray-500 text-center text-sm leading-relaxed mb-6">
+          If {email} is registered, we've sent a reset token. Check your inbox and spam folder.
         </Text>
         <TouchableOpacity
-          className="w-full bg-primary-600 rounded-xl py-4 items-center"
+          className="w-full bg-primary-600 rounded-xl py-4 items-center mb-3"
+          onPress={() => navigation.navigate('ResetPassword', { email })}
+        >
+          <Text className="text-white font-bold text-base">Enter Reset Token</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className="w-full border border-gray-200 rounded-xl py-4 items-center"
           onPress={() => navigation.navigate('Login')}
         >
-          <Text className="text-white font-bold text-base">Back to Sign In</Text>
+          <Text className="text-gray-700 font-semibold text-base">Back to Sign In</Text>
         </TouchableOpacity>
       </View>
     );

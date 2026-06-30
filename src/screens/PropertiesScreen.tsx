@@ -4,6 +4,7 @@ import {
   ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import api from '../api/client';
 
 interface Property {
@@ -27,6 +28,7 @@ const STATUS_STYLE: Record<string, { color: string; bg: string }> = {
 };
 
 export default function PropertiesScreen() {
+  const navigation = useNavigation<any>();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -44,6 +46,24 @@ export default function PropertiesScreen() {
     setRefreshing(true);
     await fetchProperties().catch(() => {});
     setRefreshing(false);
+  };
+
+  const confirmDelete = (id: number, title: string) => {
+    Alert.alert('Delete Listing', `Delete "${title}"? This cannot be undone.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.delete(`/properties/${id}`);
+            setProperties(prev => prev.filter(p => p.id !== id));
+          } catch (err: any) {
+            Alert.alert('Error', err?.response?.data?.message ?? 'Could not delete listing.');
+          }
+        },
+      },
+    ]);
   };
 
   const confirmAction = (id: number, currentStatus: string) => {
@@ -107,7 +127,14 @@ export default function PropertiesScreen() {
           </View>
           <View className="flex-1" />
           <TouchableOpacity
-            className="flex-row items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-full"
+            className="flex-row items-center gap-1 px-2.5 py-1.5 bg-gray-100 rounded-full mr-1"
+            onPress={() => navigation.navigate('EditProperty', { id: item.id })}
+          >
+            <Ionicons name="pencil-outline" size={13} color="#6b7280" />
+            <Text className="text-gray-600 text-xs font-medium">Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-row items-center gap-1 px-2.5 py-1.5 bg-gray-100 rounded-full mr-1"
             onPress={() => confirmAction(item.id, item.status)}
           >
             <Ionicons
@@ -118,6 +145,12 @@ export default function PropertiesScreen() {
             <Text className="text-gray-600 text-xs font-medium">
               {item.status === 'archived' ? 'Restore' : 'Archive'}
             </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="w-7 h-7 bg-red-50 rounded-full items-center justify-center"
+            onPress={() => confirmDelete(item.id, item.title)}
+          >
+            <Ionicons name="trash-outline" size={13} color="#dc2626" />
           </TouchableOpacity>
         </View>
       </View>
@@ -130,7 +163,7 @@ export default function PropertiesScreen() {
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#16a34a" />
         </View>
-      ) : (
+      ) : (<>
         <FlatList
           data={properties}
           keyExtractor={item => String(item.id)}
@@ -144,12 +177,25 @@ export default function PropertiesScreen() {
               <Ionicons name="home-outline" size={48} color="#d1d5db" />
               <Text className="text-gray-900 font-semibold text-lg mt-4">No listings yet</Text>
               <Text className="text-gray-500 text-sm text-center mt-2">
-                Add your first property listing via the web portal at ufok.ng
+                Create your first property listing below.
               </Text>
+              <TouchableOpacity
+                className="mt-4 bg-primary-600 rounded-xl px-6 py-3"
+                onPress={() => navigation.navigate('CreateProperty')}
+              >
+                <Text className="text-white font-semibold text-sm">Create Listing</Text>
+              </TouchableOpacity>
             </View>
           }
         />
-      )}
+        <TouchableOpacity
+          className="absolute bottom-6 right-6 w-14 h-14 bg-primary-600 rounded-full items-center justify-center"
+          style={{ shadowColor: '#16a34a', shadowOpacity: 0.4, shadowRadius: 8, elevation: 6 }}
+          onPress={() => navigation.navigate('CreateProperty')}
+        >
+          <Ionicons name="add" size={28} color="#fff" />
+        </TouchableOpacity>
+      </>)}
     </View>
   );
 }
