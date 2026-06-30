@@ -17,11 +17,22 @@ interface DashboardData {
   recent_activity?: { label: string; time: string }[];
 }
 
-const QUICK_ACTIONS = [
-  { icon: 'wallet-outline' as const, label: 'Wallet', screen: 'Wallet' },
-  { icon: 'notifications-outline' as const, label: 'Notifications', screen: 'Notifications' },
-  { icon: 'person-outline' as const, label: 'Edit Profile', screen: 'ProfileEdit' },
-  { icon: 'shield-checkmark-outline' as const, label: 'KYC', screen: 'Kyc' },
+const TENANT_ACTIONS = [
+  { icon: 'wallet-outline' as const, label: 'Wallet', screen: 'Wallet', params: undefined },
+  { icon: 'calendar-outline' as const, label: 'Inspections', screen: 'Inspections', params: {} },
+  { icon: 'people-outline' as const, label: 'Referrals', screen: 'Referrals', params: undefined },
+  { icon: 'trophy-outline' as const, label: 'Leaderboard', screen: 'Leaderboard', params: undefined },
+  { icon: 'notifications-outline' as const, label: 'Notifications', screen: 'Notifications', params: undefined },
+  { icon: 'shield-checkmark-outline' as const, label: 'KYC', screen: 'Kyc', params: undefined },
+];
+
+const LISTING_ACTIONS = [
+  { icon: 'wallet-outline' as const, label: 'Wallet', screen: 'Wallet', params: undefined },
+  { icon: 'star-outline' as const, label: 'Subscription', screen: 'Subscription', params: undefined },
+  { icon: 'people-outline' as const, label: 'Referrals', screen: 'Referrals', params: undefined },
+  { icon: 'trophy-outline' as const, label: 'Leaderboard', screen: 'Leaderboard', params: undefined },
+  { icon: 'notifications-outline' as const, label: 'Notifications', screen: 'Notifications', params: undefined },
+  { icon: 'shield-checkmark-outline' as const, label: 'KYC', screen: 'Kyc', params: undefined },
 ];
 
 export default function DashboardScreen() {
@@ -55,6 +66,7 @@ export default function DashboardScreen() {
 
   const isTenant = user?.role === 'tenant';
   const isListing = user?.role === 'landlord' || user?.role === 'agent';
+  const quickActions = isTenant ? TENANT_ACTIONS : LISTING_ACTIONS;
 
   if (loading) {
     return (
@@ -139,12 +151,12 @@ export default function DashboardScreen() {
       <View className="mx-4 mt-4">
         <Text className="text-gray-900 font-semibold text-base mb-3">Quick Actions</Text>
         <View className="flex-row flex-wrap gap-3">
-          {QUICK_ACTIONS.map(action => (
+          {quickActions.map(action => (
             <TouchableOpacity
               key={action.screen}
               className="bg-white rounded-2xl p-4 border border-gray-100 items-center"
               style={{ width: '47%' }}
-              onPress={() => navigation.navigate(action.screen)}
+              onPress={() => navigation.navigate(action.screen, action.params)}
               activeOpacity={0.8}
             >
               <View className="w-10 h-10 bg-primary-50 rounded-xl items-center justify-center mb-2">
@@ -156,19 +168,26 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* Referral code */}
+      {/* Referral card */}
       {user?.referral_code && (
-        <View className="mx-4 mt-4 mb-8">
+        <TouchableOpacity
+          className="mx-4 mt-4 mb-8"
+          onPress={() => navigation.navigate('Referrals')}
+          activeOpacity={0.85}
+        >
           <View className="bg-primary-600 rounded-2xl p-5">
-            <Text className="text-primary-100 text-xs font-medium mb-1">Your referral link</Text>
+            <View className="flex-row items-center justify-between mb-1">
+              <Text className="text-primary-100 text-xs font-medium">Your referral code</Text>
+              <Ionicons name="chevron-forward" size={14} color="rgba(255,255,255,0.6)" />
+            </View>
             <Text className="text-white font-mono text-sm font-semibold">
               ufok.ng/ref/{user.referral_code}
             </Text>
             <Text className="text-primary-200 text-xs mt-2">
-              Earn ₦1,000 for every friend who joins
+              Earn ₦1,000 for every friend who joins — tap to see your referrals
             </Text>
           </View>
-        </View>
+        </TouchableOpacity>
       )}
     </ScrollView>
   );

@@ -4,9 +4,7 @@ import api from '../api/client';
 
 async function registerFcmToken(): Promise<void> {
   try {
-    // expo-notifications may not be installed yet; guard with dynamic require
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const Notifications = require('expo-notifications');
+    const Notifications = await import('expo-notifications');
     const { status } = await Notifications.getPermissionsAsync();
     const finalStatus = status === 'granted'
       ? status
