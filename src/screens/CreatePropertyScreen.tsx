@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
+import MapPinPicker, { LatLng } from '../components/MapPinPicker';
 import type { RootScreenProps } from '../navigation/types';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -193,6 +194,10 @@ export default function CreatePropertyScreen({ navigation }: RootScreenProps<'Cr
   const [cautionFee, setCautionFee] = useState('');
   const [agencyFee, setAgencyFee]   = useState('');
 
+  // Map
+  const [coords, setCoords]         = useState<LatLng | null>(null);
+  const [showMap, setShowMap]       = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
 
   const toggleAmenity = useCallback((val: string) => {
@@ -253,6 +258,7 @@ export default function CreatePropertyScreen({ navigation }: RootScreenProps<'Cr
       if (amenities.length > 0)            payload.amenities     = amenities;
       if (cautionFee.trim() && !isNaN(Number(cautionFee))) payload.caution_fee = Number(cautionFee);
       if (agencyFee.trim()  && !isNaN(Number(agencyFee)))  payload.agency_fee  = Number(agencyFee);
+      if (coords) { payload.latitude = coords.latitude; payload.longitude = coords.longitude; }
 
       await api.post('/properties', payload);
 
@@ -285,6 +291,12 @@ export default function CreatePropertyScreen({ navigation }: RootScreenProps<'Cr
       className="flex-1 bg-gray-50"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <MapPinPicker
+        visible={showMap}
+        initial={coords ?? undefined}
+        onConfirm={c => { setCoords(c); setShowMap(false); }}
+        onClose={() => setShowMap(false)}
+      />
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
@@ -465,6 +477,34 @@ export default function CreatePropertyScreen({ navigation }: RootScreenProps<'Cr
               onChangeText={setCity}
               returnKeyType="done"
             />
+
+            <SectionLabel>Pin on Map (Optional)</SectionLabel>
+            <TouchableOpacity
+              className="border border-gray-200 rounded-xl px-4 py-3.5 bg-white mb-4 flex-row items-center gap-3"
+              onPress={() => setShowMap(true)}
+              activeOpacity={0.75}
+            >
+              <View className="w-8 h-8 bg-primary-50 rounded-lg items-center justify-center">
+                <Ionicons name="map-outline" size={18} color="#16a34a" />
+              </View>
+              <View className="flex-1">
+                {coords ? (
+                  <>
+                    <Text className="text-gray-900 text-sm font-medium">Location pinned</Text>
+                    <Text className="text-gray-400 text-xs mt-0.5">
+                      {coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}
+                    </Text>
+                  </>
+                ) : (
+                  <Text className="text-gray-400 text-sm">Tap to pin exact location on map</Text>
+                )}
+              </View>
+              {coords ? (
+                <Ionicons name="checkmark-circle" size={20} color="#16a34a" />
+              ) : (
+                <Ionicons name="chevron-forward" size={16} color="#d1d5db" />
+              )}
+            </TouchableOpacity>
           </SectionCard>
 
           {/* ── 4. Features (optional) ── */}

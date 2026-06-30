@@ -45,6 +45,13 @@
           "color": "#16a34a",
           "androidMode": "default"
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Ufok needs your location to show nearby properties.",
+          "locationWhenInUsePermission": "Ufok needs your location to show nearby properties."
+        }
       ]
     ],
     "extra": {
