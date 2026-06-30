@@ -1,0 +1,10 @@
+node_modules/
+dist/
+ios/
+.env
+*.local
+# Android build outputs only — project source is committed so it opens in Android Studio
+android/.gradle/
+android/app/build/
+android/build/
+android/.idea/
