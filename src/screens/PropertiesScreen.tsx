@@ -32,7 +32,7 @@ export default function PropertiesScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchProperties = async () => {
-    const { data } = await api.get('/properties/my');
+    const { data } = await api.get('/properties/mine');
     setProperties(data.data?.data ?? data.data ?? []);
   };
 
@@ -86,7 +86,7 @@ export default function PropertiesScreen() {
               <Text className="text-gray-500 text-xs">{item.city}, {item.state}</Text>
             </View>
             <Text className="text-primary-600 font-bold mt-2 text-base">
-              ₦{item.price.toLocaleString()}/yr
+              ₦{(item.price ?? 0).toLocaleString()}/yr
             </Text>
           </View>
           <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: style.bg }}>

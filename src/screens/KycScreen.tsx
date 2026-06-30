@@ -56,8 +56,8 @@ export default function KycScreen() {
   const [uploading, setUploading] = useState(false);
 
   const fetchDocuments = async () => {
-    const { data } = await api.get('/kyc/documents');
-    setDocuments(data.data ?? []);
+    const { data } = await api.get('/profile/kyc');
+    setDocuments(data.data?.submissions ?? []);
   };
 
   useEffect(() => {
@@ -94,7 +94,7 @@ export default function KycScreen() {
         type: selectedFile.mimeType ?? 'application/octet-stream',
       } as any);
 
-      await api.post('/kyc/submit', formData, {
+      await api.post('/profile/kyc', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 

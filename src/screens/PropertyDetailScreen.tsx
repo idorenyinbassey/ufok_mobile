@@ -23,7 +23,7 @@ interface PropertyDetail {
   state: string;
   description: string;
   amenities: string[];
-  images: { id: number; cloudinary_url: string }[];
+  images: { id: number; url: string }[];
   lister: {
     id: number;
     name: string;
@@ -42,7 +42,7 @@ export default function PropertyDetailScreen({ route, navigation }: RootScreenPr
 
   useEffect(() => {
     api.get(`/properties/${slug}`)
-      .then(({ data }) => setProperty(data.data))
+      .then(({ data }) => setProperty(data.data?.property ?? data.data))
       .catch(() => Alert.alert('Error', 'Could not load property.'))
       .finally(() => setLoading(false));
   }, [slug]);
@@ -101,7 +101,7 @@ export default function PropertyDetailScreen({ route, navigation }: RootScreenPr
               {images.map(img => (
                 <Image
                   key={img.id}
-                  source={{ uri: img.cloudinary_url }}
+                  source={{ uri: img.url }}
                   style={{ width, height: 264 }}
                   resizeMode="cover"
                 />
@@ -131,7 +131,7 @@ export default function PropertyDetailScreen({ route, navigation }: RootScreenPr
 
         <View className="px-5 pt-5 pb-8">
           <Text className="text-primary-600 font-bold text-2xl">
-            ₦{property.price.toLocaleString()}
+            ₦{(property.price ?? 0).toLocaleString()}
             <Text className="text-gray-400 text-base font-normal">/yr</Text>
           </Text>
           <Text className="text-gray-900 font-bold text-xl mt-1">{property.title}</Text>

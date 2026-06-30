@@ -50,12 +50,10 @@ export default function WalletScreen({ navigation }: RootScreenProps<'Wallet'>) 
   const [acting, setActing] = useState(false);
 
   const fetchWallet = async () => {
-    const [walletRes, txRes] = await Promise.all([
-      api.get('/wallet'),
-      api.get('/wallet/transactions'),
-    ]);
-    setWallet(walletRes.data.data);
-    setTransactions(txRes.data.data?.data ?? txRes.data.data ?? []);
+    const { data } = await api.get('/wallet');
+    const walletData = data.data;
+    setWallet({ balance: walletData.balance, currency: walletData.currency });
+    setTransactions(walletData.transactions?.data ?? []);
   };
 
   useEffect(() => {

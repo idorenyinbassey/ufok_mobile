@@ -17,7 +17,7 @@ interface Property {
   bathrooms: number;
   city: string;
   state: string;
-  primary_image_url: string | null;
+  image: string | null;
   lister: { name: string; is_professionally_verified: boolean } | null;
 }
 
@@ -87,9 +87,9 @@ export default function BrowseScreen() {
       activeOpacity={0.8}
     >
       <View style={{ height: 176 }} className="bg-gray-200">
-        {item.primary_image_url ? (
+        {item.image ? (
           <Image
-            source={{ uri: item.primary_image_url }}
+            source={{ uri: item.image }}
             style={{ width: '100%', height: 176 }}
             resizeMode="cover"
           />
@@ -104,7 +104,7 @@ export default function BrowseScreen() {
       </View>
       <View className="p-4">
         <Text className="text-primary-600 font-bold text-lg">
-          ₦{item.price.toLocaleString()}
+          ₦{(item.price ?? 0).toLocaleString()}
           <Text className="text-gray-400 text-sm font-normal">/yr</Text>
         </Text>
         <Text className="text-gray-900 font-semibold text-base mt-0.5" numberOfLines={2}>{item.title}</Text>
