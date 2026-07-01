@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
 import { useAuthStore } from '../stores/auth';
 import type { RootScreenProps } from '../navigation/types';
+import PaymentWebView from '../components/PaymentWebView';
 
 const { width } = Dimensions.get('window');
 
@@ -16,6 +17,8 @@ interface PropertyDetail {
   title: string;
   price: number;
   type: string;
+  transaction_type: string;
+  is_featured: boolean;
   bedrooms: number;
   bathrooms: number;
   address: string;
@@ -24,12 +27,25 @@ interface PropertyDetail {
   description: string;
   amenities: string[];
   images: { id: number; url: string }[];
+  reservation: {
+    is_reserved: boolean;
+    reserved_by_me: boolean;
+    expires_at: string | null;
+    fee: number;
+  };
   lister: {
     id: number;
     name: string;
     role: string;
     is_professionally_verified: boolean;
   } | null;
+}
+
+function timeUntil(dateStr: string): string {
+  const diffMs = new Date(dateStr).getTime() - Date.now();
+  if (diffMs <= 0) return 'soon';
+  const hours = Math.round(diffMs / 3_600_000);
+  return hours <= 1 ? '1 hour' : `${hours} hours`;
 }
 
 export default function PropertyDetailScreen({ route, navigation }: RootScreenProps<'PropertyDetail'>) {
@@ -41,10 +57,18 @@ export default function PropertyDetailScreen({ route, navigation }: RootScreenPr
   const [contacting, setContacting] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [reserving, setReserving] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState('');
+  const [paymentVisible, setPaymentVisible] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<'reserve' | 'pay' | null>(null);
+
+  const fetchProperty = () =>
+    api.get(`/properties/${slug}`)
+      .then(({ data }) => setProperty(data.data?.property ?? data.data));
 
   useEffect(() => {
-    api.get(`/properties/${slug}`)
-      .then(({ data }) => setProperty(data.data?.property ?? data.data))
+    fetchProperty()
       .catch(() => Alert.alert('Error', 'Could not load property.'))
       .finally(() => setLoading(false));
   }, [slug]);
@@ -77,6 +101,81 @@ export default function PropertyDetailScreen({ route, navigation }: RootScreenPr
       Alert.alert('Error', err?.response?.data?.message ?? 'Could not start conversation.');
     } finally {
       setContacting(false);
+    }
+  };
+
+  const handleReserve = async () => {
+    if (!property) return;
+    setReserving(true);
+    try {
+      const { data } = await api.post(`/properties/${property.id}/reserve`);
+      if (data.data?.already_reserved) {
+        Alert.alert('Already Reserved', data.message ?? 'You already have an active reservation for this listing.');
+        await fetchProperty().catch(() => {});
+        return;
+      }
+      setPaymentMode('reserve');
+      setPaymentUrl(data.data.authorization_url);
+      setPaymentVisible(true);
+    } catch (err: any) {
+      Alert.alert('Error', err?.response?.data?.message ?? 'Could not initialize reservation. Please try again.');
+    } finally {
+      setReserving(false);
+    }
+  };
+
+  const handlePay = () => {
+    if (!property) return;
+    const type = ['rent', 'lease'].includes(property.transaction_type) ? 'rent_payment' : 'sale_deposit';
+    Alert.alert(
+      'Inspect Before Paying',
+      'Only release payment after physically inspecting the property and confirming it matches the listing. Ufok is not liable for payments made without a physical inspection.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: "I've Inspected — Pay Now",
+          onPress: async () => {
+            if (!property) return;
+            setPaying(true);
+            try {
+              const { data } = await api.post('/payments/initialize', {
+                property_id: property.id,
+                type,
+              });
+              setPaymentMode('pay');
+              setPaymentUrl(data.data.authorization_url);
+              setPaymentVisible(true);
+            } catch (err: any) {
+              Alert.alert('Error', err?.response?.data?.message ?? 'Could not initialize payment. Please try again.');
+            } finally {
+              setPaying(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handlePaymentClose = async (txRef?: string) => {
+    const mode = paymentMode;
+    setPaymentVisible(false);
+    setPaymentUrl('');
+    setPaymentMode(null);
+
+    if (!txRef || !mode) return;
+
+    try {
+      if (mode === 'reserve') {
+        const { data } = await api.post('/reservations/activate', { tx_ref: txRef });
+        Alert.alert('Listing Reserved', data.message ?? 'Contact the landlord/agent within 24 hours to keep your reservation active.');
+      } else {
+        const { data } = await api.post('/payments/activate', { tx_ref: txRef });
+        Alert.alert('Payment Confirmed', data.message ?? 'Your payment is being processed.');
+      }
+    } catch (err: any) {
+      Alert.alert('Verify Payment', err?.response?.data?.message ?? 'Payment could not be verified. It may take a moment to reflect.');
+    } finally {
+      await fetchProperty().catch(() => {});
     }
   };
 
@@ -249,20 +348,68 @@ export default function PropertyDetailScreen({ route, navigation }: RootScreenPr
               />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            className="w-full border border-primary-600 rounded-xl py-3.5 items-center"
-            onPress={() => navigation.navigate('Inspections', {
-              propertyId: property.id,
-              propertyTitle: property.title,
-            })}
-          >
-            <View className="flex-row items-center gap-2">
-              <Ionicons name="calendar-outline" size={18} color="#16a34a" />
-              <Text className="text-primary-600 font-bold text-base">Book Inspection</Text>
+          {property.reservation.reserved_by_me ? (
+            <View className="flex-row items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5">
+              <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
+              <View>
+                <Text className="text-green-800 font-semibold text-xs">Reserved by you</Text>
+                {property.reservation.expires_at && (
+                  <Text className="text-green-600 text-xs">Expires in {timeUntil(property.reservation.expires_at)}</Text>
+                )}
+              </View>
             </View>
+          ) : property.reservation.is_reserved ? (
+            <View className="flex-row items-center gap-2 bg-gray-100 border border-gray-200 rounded-xl px-3 py-2.5">
+              <Ionicons name="lock-closed-outline" size={16} color="#9ca3af" />
+              <View>
+                <Text className="text-gray-600 font-semibold text-xs">Currently reserved</Text>
+                {property.reservation.expires_at && (
+                  <Text className="text-gray-400 text-xs">Available in {timeUntil(property.reservation.expires_at)}</Text>
+                )}
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity
+              className={`w-full border rounded-xl py-3.5 items-center ${reserving ? 'border-gray-200' : 'border-primary-600'}`}
+              onPress={handleReserve}
+              disabled={reserving}
+            >
+              {reserving ? (
+                <ActivityIndicator color="#16a34a" />
+              ) : (
+                <View className="flex-row items-center gap-2">
+                  <Ionicons name="bookmark-outline" size={18} color="#16a34a" />
+                  <Text className="text-primary-600 font-bold text-base">
+                    Reserve Listing (₦{property.reservation.fee.toLocaleString()})
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            className={`w-full rounded-xl py-3.5 items-center ${paying ? 'bg-gray-300' : 'bg-yellow-400'}`}
+            onPress={handlePay}
+            disabled={paying}
+          >
+            {paying ? (
+              <ActivityIndicator color="#111827" />
+            ) : (
+              <View className="flex-row items-center gap-2">
+                <Ionicons name="card-outline" size={18} color="#111827" />
+                <Text className="text-gray-900 font-bold text-base">Pay Now via Flutterwave</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       )}
+
+      <PaymentWebView
+        url={paymentUrl}
+        visible={paymentVisible}
+        title={paymentMode === 'reserve' ? 'Reserve Listing' : 'Complete Payment'}
+        onClose={handlePaymentClose}
+      />
     </View>
   );
 }
