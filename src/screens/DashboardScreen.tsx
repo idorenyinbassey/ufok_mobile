@@ -17,13 +17,22 @@ interface DashboardData {
   recent_activity?: { label: string; time: string }[];
 }
 
+interface TenantQuota {
+  daily_used: number;
+  daily_limit: number;
+  pack_type: string | null;
+  has_unlimited: boolean;
+}
+
 const TENANT_ACTIONS = [
   { icon: 'wallet-outline' as const, label: 'Wallet', screen: 'Wallet', params: undefined },
   { icon: 'bookmark-outline' as const, label: 'My Reservations', screen: 'Reservations', params: undefined },
+  { icon: 'star-outline' as const, label: 'Subscription', screen: 'Subscription', params: undefined },
   { icon: 'people-outline' as const, label: 'Referrals', screen: 'Referrals', params: undefined },
   { icon: 'trophy-outline' as const, label: 'Leaderboard', screen: 'Leaderboard', params: undefined },
   { icon: 'notifications-outline' as const, label: 'Notifications', screen: 'Notifications', params: undefined },
   { icon: 'shield-checkmark-outline' as const, label: 'KYC', screen: 'Kyc', params: undefined },
+  { icon: 'help-buoy-outline' as const, label: 'Help & Support', screen: 'Support', params: undefined },
 ];
 
 const LISTING_ACTIONS = [
@@ -33,18 +42,30 @@ const LISTING_ACTIONS = [
   { icon: 'trophy-outline' as const, label: 'Leaderboard', screen: 'Leaderboard', params: undefined },
   { icon: 'notifications-outline' as const, label: 'Notifications', screen: 'Notifications', params: undefined },
   { icon: 'shield-checkmark-outline' as const, label: 'KYC', screen: 'Kyc', params: undefined },
+  { icon: 'help-buoy-outline' as const, label: 'Help & Support', screen: 'Support', params: undefined },
 ];
 
 export default function DashboardScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
   const [data, setData] = useState<DashboardData | null>(null);
+  const [quota, setQuota] = useState<TenantQuota | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const isTenant = user?.role === 'tenant';
 
   const fetchDashboard = async () => {
     const { data: res } = await api.get('/dashboard');
     setData(res.data ?? {});
+    if (isTenant) {
+      try {
+        const { data: sub } = await api.get('/subscriptions');
+        if (sub.data?.quota) setQuota(sub.data.quota);
+      } catch {
+        // Non-critical — quota card just won't show
+      }
+    }
   };
 
   useEffect(() => {
@@ -64,7 +85,6 @@ export default function DashboardScreen() {
     return 'Good evening';
   };
 
-  const isTenant = user?.role === 'tenant';
   const isListing = user?.role === 'landlord' || user?.role === 'agent';
   const quickActions = isTenant ? TENANT_ACTIONS : LISTING_ACTIONS;
 
@@ -123,6 +143,49 @@ export default function DashboardScreen() {
           </View>
         </TouchableOpacity>
       </View>
+
+      {/* Subscription / match quota card (tenant) */}
+      {isTenant && quota && (
+        <View className="mx-4 mt-4">
+          <TouchableOpacity
+            className="bg-white rounded-2xl p-5 border border-gray-100"
+            style={{ shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 }}
+            onPress={() => navigation.navigate('Subscription')}
+            activeOpacity={0.85}
+          >
+            <View className="flex-row items-center justify-between">
+              <View>
+                <Text className="text-gray-500 text-xs font-medium">Match Quota</Text>
+                <Text className="text-gray-900 font-bold text-lg mt-1">
+                  {quota.has_unlimited
+                    ? 'Unlimited'
+                    : `${quota.daily_used} / ${quota.daily_limit} used today`}
+                </Text>
+                {quota.pack_type && !quota.has_unlimited && (
+                  <Text className="text-primary-600 text-xs font-medium mt-0.5 capitalize">
+                    {quota.pack_type.replace('_', ' ')} pack active
+                  </Text>
+                )}
+              </View>
+              <View className="w-12 h-12 bg-amber-50 rounded-2xl items-center justify-center">
+                <Ionicons name="star-outline" size={22} color="#d97706" />
+              </View>
+            </View>
+            {!quota.has_unlimited && (
+              <View className="h-2 bg-gray-100 rounded-full overflow-hidden mt-3">
+                <View
+                  className="h-2 rounded-full bg-primary-600"
+                  style={{ width: `${quota.daily_limit > 0 ? Math.min((quota.daily_used / quota.daily_limit) * 100, 100) : 0}%` }}
+                />
+              </View>
+            )}
+            <View className="flex-row items-center mt-3 gap-1">
+              <Text className="text-primary-600 text-sm font-semibold">View plans</Text>
+              <Ionicons name="chevron-forward" size={14} color="#16a34a" />
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Stats grid */}
       <View className="flex-row mx-4 mt-4 gap-3">
