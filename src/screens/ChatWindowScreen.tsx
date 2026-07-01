@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  ActivityIndicator, KeyboardAvoidingView, Platform, Alert,
+  ActivityIndicator, KeyboardAvoidingView, Platform, Alert, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -166,11 +166,18 @@ export default function ChatWindowScreen({ route }: RootScreenProps<'ChatWindow'
     return (
       <View className={`flex-row mb-3 px-4 ${isMe ? 'justify-end' : 'justify-start'}`}>
         {!isMe && (
-          <View className="w-8 h-8 bg-gray-200 rounded-full items-center justify-center mr-2 mt-1">
-            <Text className="text-gray-600 text-xs font-bold">
-              {item.sender?.name?.charAt(0).toUpperCase() ?? '?'}
-            </Text>
-          </View>
+          item.sender?.avatar ? (
+            <Image
+              source={{ uri: item.sender.avatar }}
+              style={{ width: 32, height: 32, borderRadius: 16, marginRight: 8, marginTop: 4 }}
+            />
+          ) : (
+            <View className="w-8 h-8 bg-gray-200 rounded-full items-center justify-center mr-2 mt-1">
+              <Text className="text-gray-600 text-xs font-bold">
+                {item.sender?.name?.charAt(0).toUpperCase() ?? '?'}
+              </Text>
+            </View>
+          )
         )}
         <View className={`max-w-[75%] ${isMe ? 'items-end' : 'items-start'}`}>
           <View className={`rounded-2xl px-4 py-2.5 ${isMe ? 'bg-primary-600 rounded-br-sm' : 'bg-gray-100 rounded-bl-sm'}`}>

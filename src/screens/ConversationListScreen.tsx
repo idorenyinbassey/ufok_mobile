@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl,
+  ActivityIndicator, RefreshControl, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -64,9 +64,17 @@ export default function ConversationListScreen() {
         activeOpacity={0.7}
       >
         {/* Avatar */}
-        <View className="w-12 h-12 bg-primary-600 rounded-full items-center justify-center mr-3">
-          <Text className="text-white font-bold">{initials}</Text>
-        </View>
+        {other?.avatar ? (
+          <Image
+            source={{ uri: other.avatar }}
+            className="w-12 h-12 rounded-full mr-3"
+            style={{ width: 48, height: 48, borderRadius: 24 }}
+          />
+        ) : (
+          <View className="w-12 h-12 bg-primary-600 rounded-full items-center justify-center mr-3">
+            <Text className="text-white font-bold">{initials}</Text>
+          </View>
+        )}
 
         {/* Content */}
         <View className="flex-1 min-w-0">
