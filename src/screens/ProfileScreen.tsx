@@ -134,6 +134,7 @@ export default function ProfileScreen() {
       <View className="mt-4">
         <Text className="text-gray-400 text-xs font-semibold uppercase tracking-wider px-5 py-2">Settings</Text>
         <MenuItem icon="settings-outline" label="Account Settings" onPress={() => navigation.navigate('AccountSettings')} />
+        <MenuItem icon="help-buoy-outline" label="Help & Support" onPress={() => navigation.navigate('Support')} />
         <MenuItem
           icon="lock-closed-outline"
           label="HTTPS Secured Connection"
