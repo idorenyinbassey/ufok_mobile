@@ -12,6 +12,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
+import LgaPicker from '../components/LgaPicker';
+import PropertyImagePicker, { PickedImage, ExistingImage } from '../components/PropertyImagePicker';
+import { useAuthStore } from '../stores/auth';
+import {
+  AMENITY_OPTIONS, COMMISSION_RATES, pricePeriodOptionsFor, defaultPricePeriodFor,
+} from '../utils/propertyForm';
 import type { RootScreenProps } from '../navigation/types';
 
 // ─── Constants (shared with CreatePropertyScreen) ────────────────────────────
@@ -39,32 +45,10 @@ const TRANSACTION_TYPES = [
   { value: 'shortlet', label: 'Shortlet' },
 ];
 
-const PRICE_PERIODS = [
-  { value: 'monthly',  label: 'Monthly' },
-  { value: 'yearly',   label: 'Yearly' },
-  { value: 'weekly',   label: 'Weekly' },
-  { value: 'daily',    label: 'Daily' },
-  { value: 'outright', label: 'Outright' },
-];
-
 const FURNISHINGS = [
   { value: 'furnished',       label: 'Furnished' },
   { value: 'semi-furnished',  label: 'Semi-Furnished' },
   { value: 'unfurnished',     label: 'Unfurnished' },
-];
-
-const AMENITY_OPTIONS = [
-  { value: 'wifi',             label: 'WiFi' },
-  { value: 'parking',          label: 'Parking' },
-  { value: 'generator',        label: 'Generator' },
-  { value: 'security',         label: 'Security' },
-  { value: 'pool',             label: 'Pool' },
-  { value: 'gym',              label: 'Gym' },
-  { value: 'borehole',         label: 'Borehole' },
-  { value: 'pop_ceiling',      label: 'POP Ceiling' },
-  { value: 'tiled_floor',      label: 'Tiled Floor' },
-  { value: 'kitchen_cabinet',  label: 'Kitchen Cabinet' },
-  { value: 'air_conditioning', label: 'Air Conditioning' },
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -173,6 +157,7 @@ export default function EditPropertyScreen({ navigation, route }: RootScreenProp
   const [transactionType, setTransactionType] = useState('');
   const [price, setPrice]                     = useState('');
   const [pricePeriod, setPricePeriod]         = useState('');
+  const [commissionRate, setCommissionRate]   = useState('10');
 
   // Location
   const [address, setAddress] = useState('');
@@ -198,13 +183,25 @@ export default function EditPropertyScreen({ navigation, route }: RootScreenProp
   const [cautionFee, setCautionFee] = useState('');
   const [agencyFee, setAgencyFee]   = useState('');
 
+  // Photos
+  const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
+  const [newImages, setNewImages]           = useState<PickedImage[]>([]);
+  const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
+
   const [submitting, setSubmitting] = useState(false);
+  const { user } = useAuthStore();
+  const isAgent = user?.role === 'agent';
 
   const toggleAmenity = useCallback((val: string) => {
     setAmenities(prev =>
       prev.includes(val) ? prev.filter(a => a !== val) : [...prev, val],
     );
   }, []);
+
+  const handleTransactionTypeChange = (val: string) => {
+    setTransactionType(val);
+    setPricePeriod(defaultPricePeriodFor(val));
+  };
 
   const filteredStates = NIGERIAN_STATES.filter(s =>
     s.toLowerCase().includes(stateQuery.toLowerCase()),
@@ -260,6 +257,8 @@ export default function EditPropertyScreen({ navigation, route }: RootScreenProp
         setAmenities(Array.isArray(property.amenities) ? property.amenities : []);
         setCautionFee(property.caution_fee != null ? String(property.caution_fee) : '');
         setAgencyFee(property.agency_fee != null ? String(property.agency_fee) : '');
+        setCommissionRate(property.commission_rate ? String(property.commission_rate) : '10');
+        setExistingImages(Array.isArray(property.images) ? property.images : []);
       } catch (err: any) {
         if (!cancelled) {
           setFetchError(
@@ -275,6 +274,28 @@ export default function EditPropertyScreen({ navigation, route }: RootScreenProp
     return () => { cancelled = true; };
   }, [id]);
 
+  // ── Delete an already-uploaded image ──────────────────────────────────────
+  const handleDeleteExisting = (imageId: number) => {
+    Alert.alert('Remove Photo', 'Remove this photo from the listing?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          setDeletingImageId(imageId);
+          try {
+            const { data } = await api.delete(`/properties/${id}/images/${imageId}`);
+            setExistingImages(data.data?.images ?? existingImages.filter(i => i.id !== imageId));
+          } catch (err: any) {
+            Alert.alert('Error', err?.response?.data?.message ?? 'Could not remove photo.');
+          } finally {
+            setDeletingImageId(null);
+          }
+        },
+      },
+    ]);
+  };
+
   // ── Submit partial update ─────────────────────────────────────────────────
   const handleSave = async () => {
     if (!title.trim()) {
@@ -285,6 +306,10 @@ export default function EditPropertyScreen({ navigation, route }: RootScreenProp
       Alert.alert('Validation Error', 'Description must be at least 30 characters.');
       return;
     }
+    if (description.trim().length > 600) {
+      Alert.alert('Validation Error', 'Description must not exceed 600 characters.');
+      return;
+    }
     if (price.trim() && (isNaN(Number(price)) || Number(price) < 1)) {
       Alert.alert('Validation Error', 'Price must be a valid number (min 1).');
       return;
@@ -292,31 +317,39 @@ export default function EditPropertyScreen({ navigation, route }: RootScreenProp
 
     setSubmitting(true);
     try {
-      const payload: Record<string, unknown> = {};
+      const form = new FormData();
+      form.append('_method', 'PUT');
 
-      if (title.trim())                          payload.title            = title.trim();
-      if (description.trim())                    payload.description      = description.trim();
-      if (type)                                  payload.type             = type;
-      if (transactionType)                       payload.transaction_type = transactionType;
-      if (price.trim())                          payload.price            = Number(price);
-      if (pricePeriod)                           payload.price_period     = pricePeriod;
-      if (address.trim())                        payload.address          = address.trim();
-      if (state.trim())                          payload.state            = state.trim();
-      if (lga.trim())                            payload.lga              = lga.trim();
-      if (city.trim())                           payload.city             = city.trim();
+      if (title.trim())        form.append('title', title.trim());
+      if (description.trim())  form.append('description', description.trim());
+      if (type)                form.append('type', type);
+      if (transactionType)     form.append('transaction_type', transactionType);
+      if (price.trim())        form.append('price', String(Number(price)));
+      if (pricePeriod)         form.append('price_period', pricePeriod);
+      if (address.trim())      form.append('address', address.trim());
+      if (state.trim())        form.append('state', state.trim());
+      if (lga.trim())          form.append('lga', lga.trim());
+      if (city.trim())         form.append('city', city.trim());
 
-      payload.bedrooms       = parseInt(bedrooms, 10) || 0;
-      payload.bathrooms      = parseInt(bathrooms, 10) || 0;
-      payload.toilets        = parseInt(toilets, 10) || 0;
-      payload.parking_spaces = parseInt(parkingSpaces, 10) || 0;
+      form.append('bedrooms', String(parseInt(bedrooms, 10) || 0));
+      form.append('bathrooms', String(parseInt(bathrooms, 10) || 0));
+      form.append('toilets', String(parseInt(toilets, 10) || 0));
+      form.append('parking_spaces', String(parseInt(parkingSpaces, 10) || 0));
 
-      if (furnishing)          payload.furnishing   = furnishing;
-      if (amenities.length > 0) payload.amenities   = amenities;
+      if (furnishing) form.append('furnishing', furnishing);
+      amenities.forEach(a => form.append('amenities[]', a));
 
-      if (cautionFee.trim() && !isNaN(Number(cautionFee))) payload.caution_fee = Number(cautionFee);
-      if (agencyFee.trim()  && !isNaN(Number(agencyFee)))  payload.agency_fee  = Number(agencyFee);
+      if (cautionFee.trim() && !isNaN(Number(cautionFee))) form.append('caution_fee', cautionFee);
+      if (agencyFee.trim()  && !isNaN(Number(agencyFee)))  form.append('agency_fee', agencyFee);
+      if (isAgent) form.append('commission_rate', commissionRate);
 
-      await api.put(`/properties/${id}`, payload);
+      newImages.forEach(img => {
+        form.append('images[]', { uri: img.uri, name: img.name, type: img.type } as any);
+      });
+
+      await api.post(`/properties/${id}`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
       Alert.alert('Updated', 'Property updated successfully.', [
         { text: 'OK', onPress: () => navigation.goBack() },
@@ -390,26 +423,26 @@ export default function EditPropertyScreen({ navigation, route }: RootScreenProp
             <View className="border border-gray-200 rounded-xl bg-white mb-1 overflow-hidden">
               <TextInput
                 className="px-4 py-3 text-base text-gray-900"
-                placeholder="Describe the property (30–160 characters)..."
+                placeholder="Describe the property (30–600 characters)..."
                 placeholderTextColor="#9ca3af"
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
                 value={description}
                 onChangeText={setDescription}
-                maxLength={160}
+                maxLength={600}
                 style={{ minHeight: 90 }}
               />
             </View>
             <View className="flex-row justify-end mb-4">
               <Text
                 className={`text-xs font-medium ${
-                  descLen > 0 && (descLen < 30 || descLen > 160)
+                  descLen > 0 && (descLen < 30 || descLen > 600)
                     ? 'text-red-500'
                     : 'text-gray-400'
                 }`}
               >
-                {descLen}/160
+                {descLen}/600
               </Text>
             </View>
           </SectionCard>
@@ -429,7 +462,7 @@ export default function EditPropertyScreen({ navigation, route }: RootScreenProp
             <ChipPicker
               options={TRANSACTION_TYPES}
               value={transactionType}
-              onChange={setTransactionType}
+              onChange={handleTransactionTypeChange}
             />
 
             <SectionLabel>Price (₦)</SectionLabel>
@@ -445,10 +478,21 @@ export default function EditPropertyScreen({ navigation, route }: RootScreenProp
 
             <SectionLabel>Price Period</SectionLabel>
             <ChipPicker
-              options={PRICE_PERIODS}
+              options={pricePeriodOptionsFor(transactionType)}
               value={pricePeriod}
               onChange={setPricePeriod}
             />
+
+            {isAgent && (
+              <>
+                <SectionLabel>Agent Commission</SectionLabel>
+                <ChipPicker
+                  options={COMMISSION_RATES as unknown as { value: string; label: string }[]}
+                  value={commissionRate}
+                  onChange={setCommissionRate}
+                />
+              </>
+            )}
           </SectionCard>
 
           {/* ── 3. Location ── */}
@@ -505,6 +549,7 @@ export default function EditPropertyScreen({ navigation, route }: RootScreenProp
                         state === s ? 'bg-primary-50' : ''
                       }`}
                       onPress={() => {
+                        if (s !== state) setLga('');
                         setState(s);
                         setShowStatePicker(false);
                         setStateQuery('');
@@ -528,14 +573,7 @@ export default function EditPropertyScreen({ navigation, route }: RootScreenProp
             {!showStatePicker && <View className="mb-4" />}
 
             <SectionLabel>LGA</SectionLabel>
-            <TextInput
-              className="border border-gray-200 rounded-xl px-4 py-3.5 text-base text-gray-900 bg-white mb-4"
-              placeholder="Local Government Area"
-              placeholderTextColor="#9ca3af"
-              value={lga}
-              onChangeText={setLga}
-              returnKeyType="next"
-            />
+            <LgaPicker state={state} value={lga} onChange={setLga} />
 
             <SectionLabel>City</SectionLabel>
             <TextInput
@@ -628,7 +666,19 @@ export default function EditPropertyScreen({ navigation, route }: RootScreenProp
             />
           </SectionCard>
 
-          {/* ── 7. Save Button ── */}
+          {/* ── 7. Photos ── */}
+          <SectionCard>
+            <SectionHeading>Photos</SectionHeading>
+            <PropertyImagePicker
+              images={newImages}
+              onChange={setNewImages}
+              existingImages={existingImages}
+              onDeleteExisting={handleDeleteExisting}
+              deletingId={deletingImageId}
+            />
+          </SectionCard>
+
+          {/* ── 8. Save Button ── */}
           <TouchableOpacity
             className={`rounded-xl py-4 items-center mt-2 ${
               submitting ? 'bg-primary-600 opacity-70' : 'bg-primary-600'
@@ -644,12 +694,10 @@ export default function EditPropertyScreen({ navigation, route }: RootScreenProp
             )}
           </TouchableOpacity>
 
-          {/* ── Note ── */}
-          <View className="mt-5 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3.5 flex-row items-start gap-3">
-            <Ionicons name="information-circle-outline" size={18} color="#2563eb" style={{ marginTop: 1 }} />
-            <Text className="flex-1 text-blue-700 text-xs leading-5">
-              To manage property images, visit{' '}
-              <Text className="font-semibold">ufok.ng</Text>
+          <View className="mt-5 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3.5 flex-row items-start gap-3">
+            <Ionicons name="information-circle-outline" size={18} color="#d97706" style={{ marginTop: 1 }} />
+            <Text className="flex-1 text-amber-700 text-xs leading-5">
+              Saving changes resubmits this listing for admin review.
             </Text>
           </View>
 

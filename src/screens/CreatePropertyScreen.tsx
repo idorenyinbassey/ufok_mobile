@@ -13,6 +13,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
 import MapPinPicker, { LatLng } from '../components/MapPinPicker';
+import LgaPicker from '../components/LgaPicker';
+import PropertyImagePicker, { PickedImage } from '../components/PropertyImagePicker';
+import { useAuthStore } from '../stores/auth';
+import {
+  AMENITY_OPTIONS, COMMISSION_RATES, pricePeriodOptionsFor, defaultPricePeriodFor,
+} from '../utils/propertyForm';
 import type { RootScreenProps } from '../navigation/types';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -40,32 +46,10 @@ const TRANSACTION_TYPES = [
   { value: 'shortlet', label: 'Shortlet' },
 ];
 
-const PRICE_PERIODS = [
-  { value: 'monthly',  label: 'Monthly' },
-  { value: 'yearly',   label: 'Yearly' },
-  { value: 'weekly',   label: 'Weekly' },
-  { value: 'daily',    label: 'Daily' },
-  { value: 'outright', label: 'Outright' },
-];
-
 const FURNISHINGS = [
   { value: 'furnished',       label: 'Furnished' },
   { value: 'semi-furnished',  label: 'Semi-Furnished' },
   { value: 'unfurnished',     label: 'Unfurnished' },
-];
-
-const AMENITY_OPTIONS = [
-  { value: 'wifi',             label: 'WiFi' },
-  { value: 'parking',          label: 'Parking' },
-  { value: 'generator',        label: 'Generator' },
-  { value: 'security',         label: 'Security' },
-  { value: 'pool',             label: 'Pool' },
-  { value: 'gym',              label: 'Gym' },
-  { value: 'borehole',         label: 'Borehole' },
-  { value: 'pop_ceiling',      label: 'POP Ceiling' },
-  { value: 'tiled_floor',      label: 'Tiled Floor' },
-  { value: 'kitchen_cabinet',  label: 'Kitchen Cabinet' },
-  { value: 'air_conditioning', label: 'Air Conditioning' },
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -160,6 +144,9 @@ function CounterInput({ label, value, onChange }: CounterInputProps) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function CreatePropertyScreen({ navigation }: RootScreenProps<'CreateProperty'>) {
+  const { user } = useAuthStore();
+  const isAgent = user?.role === 'agent';
+
   // Basic Info
   const [title, setTitle]             = useState('');
   const [description, setDescription] = useState('');
@@ -169,6 +156,7 @@ export default function CreatePropertyScreen({ navigation }: RootScreenProps<'Cr
   const [transactionType, setTransactionType] = useState('');
   const [price, setPrice]                     = useState('');
   const [pricePeriod, setPricePeriod]         = useState('');
+  const [commissionRate, setCommissionRate]   = useState('10');
 
   // Location
   const [address, setAddress] = useState('');
@@ -194,6 +182,9 @@ export default function CreatePropertyScreen({ navigation }: RootScreenProps<'Cr
   const [cautionFee, setCautionFee] = useState('');
   const [agencyFee, setAgencyFee]   = useState('');
 
+  // Photos
+  const [images, setImages] = useState<PickedImage[]>([]);
+
   // Map
   const [coords, setCoords]         = useState<LatLng | null>(null);
   const [showMap, setShowMap]       = useState(false);
@@ -206,6 +197,11 @@ export default function CreatePropertyScreen({ navigation }: RootScreenProps<'Cr
     );
   }, []);
 
+  const handleTransactionTypeChange = (val: string) => {
+    setTransactionType(val);
+    setPricePeriod(defaultPricePeriodFor(val));
+  };
+
   const filteredStates = NIGERIAN_STATES.filter(s =>
     s.toLowerCase().includes(stateQuery.toLowerCase()),
   );
@@ -215,7 +211,7 @@ export default function CreatePropertyScreen({ navigation }: RootScreenProps<'Cr
     if (title.trim().length > 255)  return 'Title must not exceed 255 characters.';
     if (!description.trim())        return 'Description is required.';
     if (description.trim().length < 30)  return 'Description must be at least 30 characters.';
-    if (description.trim().length > 160) return 'Description must not exceed 160 characters.';
+    if (description.trim().length > 600) return 'Description must not exceed 600 characters.';
     if (!type)                      return 'Property type is required.';
     if (!transactionType)           return 'Transaction type is required.';
     if (!price.trim() || isNaN(Number(price)) || Number(price) < 1)
@@ -237,30 +233,38 @@ export default function CreatePropertyScreen({ navigation }: RootScreenProps<'Cr
 
     setSubmitting(true);
     try {
-      const payload: Record<string, unknown> = {
-        title: title.trim(),
-        description: description.trim(),
-        type,
-        transaction_type: transactionType,
-        price: Number(price),
-        price_period: pricePeriod,
-        address: address.trim(),
-        state: state.trim(),
-        lga: lga.trim(),
-        city: city.trim(),
-      };
+      const form = new FormData();
+      form.append('title', title.trim());
+      form.append('description', description.trim());
+      form.append('type', type);
+      form.append('transaction_type', transactionType);
+      form.append('price', String(Number(price)));
+      form.append('price_period', pricePeriod);
+      form.append('address', address.trim());
+      form.append('state', state.trim());
+      form.append('lga', lga.trim());
+      form.append('city', city.trim());
 
-      if (parseInt(bedrooms, 10) > 0)      payload.bedrooms      = parseInt(bedrooms, 10);
-      if (parseInt(bathrooms, 10) > 0)     payload.bathrooms     = parseInt(bathrooms, 10);
-      if (parseInt(toilets, 10) > 0)       payload.toilets       = parseInt(toilets, 10);
-      if (parseInt(parkingSpaces, 10) > 0) payload.parking_spaces = parseInt(parkingSpaces, 10);
-      if (furnishing)                       payload.furnishing    = furnishing;
-      if (amenities.length > 0)            payload.amenities     = amenities;
-      if (cautionFee.trim() && !isNaN(Number(cautionFee))) payload.caution_fee = Number(cautionFee);
-      if (agencyFee.trim()  && !isNaN(Number(agencyFee)))  payload.agency_fee  = Number(agencyFee);
-      if (coords) { payload.latitude = coords.latitude; payload.longitude = coords.longitude; }
+      if (parseInt(bedrooms, 10) > 0)      form.append('bedrooms', bedrooms);
+      if (parseInt(bathrooms, 10) > 0)     form.append('bathrooms', bathrooms);
+      if (parseInt(toilets, 10) > 0)       form.append('toilets', toilets);
+      if (parseInt(parkingSpaces, 10) > 0) form.append('parking_spaces', parkingSpaces);
+      if (furnishing)                      form.append('furnishing', furnishing);
+      amenities.forEach(a => form.append('amenities[]', a));
+      if (cautionFee.trim() && !isNaN(Number(cautionFee))) form.append('caution_fee', cautionFee);
+      if (agencyFee.trim()  && !isNaN(Number(agencyFee)))  form.append('agency_fee', agencyFee);
+      if (isAgent) form.append('commission_rate', commissionRate);
+      if (coords) {
+        form.append('latitude', String(coords.latitude));
+        form.append('longitude', String(coords.longitude));
+      }
+      images.forEach(img => {
+        form.append('images[]', { uri: img.uri, name: img.name, type: img.type } as any);
+      });
 
-      await api.post('/properties', payload);
+      await api.post('/properties', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
       Alert.alert('Submitted', 'Property submitted for review.', [
         { text: 'OK', onPress: () => navigation.goBack() },
@@ -337,10 +341,10 @@ export default function CreatePropertyScreen({ navigation }: RootScreenProps<'Cr
             <View className="flex-row justify-end mb-4">
               <Text
                 className={`text-xs font-medium ${
-                  descLen < 30 || descLen > 160 ? 'text-red-500' : 'text-gray-400'
+                  descLen < 30 || descLen > 600 ? 'text-red-500' : 'text-gray-400'
                 }`}
               >
-                {descLen}/160
+                {descLen}/600
               </Text>
             </View>
           </SectionCard>
@@ -360,7 +364,7 @@ export default function CreatePropertyScreen({ navigation }: RootScreenProps<'Cr
             <ChipPicker
               options={TRANSACTION_TYPES}
               value={transactionType}
-              onChange={setTransactionType}
+              onChange={handleTransactionTypeChange}
             />
 
             <SectionLabel>Price (₦)</SectionLabel>
@@ -376,10 +380,21 @@ export default function CreatePropertyScreen({ navigation }: RootScreenProps<'Cr
 
             <SectionLabel>Price Period</SectionLabel>
             <ChipPicker
-              options={PRICE_PERIODS}
+              options={pricePeriodOptionsFor(transactionType)}
               value={pricePeriod}
               onChange={setPricePeriod}
             />
+
+            {isAgent && (
+              <>
+                <SectionLabel>Agent Commission</SectionLabel>
+                <ChipPicker
+                  options={COMMISSION_RATES as unknown as { value: string; label: string }[]}
+                  value={commissionRate}
+                  onChange={setCommissionRate}
+                />
+              </>
+            )}
           </SectionCard>
 
           {/* ── 3. Location ── */}
@@ -437,6 +452,7 @@ export default function CreatePropertyScreen({ navigation }: RootScreenProps<'Cr
                       }`}
                       onPress={() => {
                         setState(s);
+                        setLga('');
                         setShowStatePicker(false);
                         setStateQuery('');
                       }}
@@ -459,14 +475,7 @@ export default function CreatePropertyScreen({ navigation }: RootScreenProps<'Cr
             {!showStatePicker && <View className="mb-4" />}
 
             <SectionLabel>LGA</SectionLabel>
-            <TextInput
-              className="border border-gray-200 rounded-xl px-4 py-3.5 text-base text-gray-900 bg-white mb-4"
-              placeholder="Local Government Area"
-              placeholderTextColor="#9ca3af"
-              value={lga}
-              onChangeText={setLga}
-              returnKeyType="next"
-            />
+            <LgaPicker state={state} value={lga} onChange={setLga} />
 
             <SectionLabel>City</SectionLabel>
             <TextInput
@@ -585,6 +594,12 @@ export default function CreatePropertyScreen({ navigation }: RootScreenProps<'Cr
               onChangeText={t => setAgencyFee(t.replace(/[^0-9.]/g, ''))}
               returnKeyType="done"
             />
+          </SectionCard>
+
+          {/* ── 7. Photos (optional) ── */}
+          <SectionCard>
+            <SectionHeading>Photos (Optional)</SectionHeading>
+            <PropertyImagePicker images={images} onChange={setImages} />
           </SectionCard>
 
           {/* ── 7. Submit ── */}
