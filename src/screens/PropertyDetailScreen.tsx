@@ -28,7 +28,7 @@ interface PropertyDetail {
   description: string;
   amenities: string[];
   images: { id: number; url: string }[];
-  reservation: {
+  reservation?: {
     is_reserved: boolean;
     reserved_by_me: boolean;
     expires_at: string | null;
@@ -205,6 +205,9 @@ export default function PropertyDetailScreen({ route, navigation }: RootScreenPr
   const images = property.images ?? [];
   const isTenant = user?.role === 'tenant';
   const isOwner = user?.id === property.lister?.id;
+  const reservation = property.reservation ?? {
+    is_reserved: false, reserved_by_me: false, expires_at: null, fee: 1000,
+  };
 
   return (
     <View className="flex-1 bg-white">
@@ -354,23 +357,23 @@ export default function PropertyDetailScreen({ route, navigation }: RootScreenPr
               />
             </TouchableOpacity>
           </View>
-          {property.reservation.reserved_by_me ? (
+          {reservation.reserved_by_me ? (
             <View className="flex-row items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5">
               <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
               <View>
                 <Text className="text-green-800 font-semibold text-xs">Reserved by you</Text>
-                {property.reservation.expires_at && (
-                  <Text className="text-green-600 text-xs">Expires in {timeUntil(property.reservation.expires_at)}</Text>
+                {reservation.expires_at && (
+                  <Text className="text-green-600 text-xs">Expires in {timeUntil(reservation.expires_at)}</Text>
                 )}
               </View>
             </View>
-          ) : property.reservation.is_reserved ? (
+          ) : reservation.is_reserved ? (
             <View className="flex-row items-center gap-2 bg-gray-100 border border-gray-200 rounded-xl px-3 py-2.5">
               <Ionicons name="lock-closed-outline" size={16} color="#9ca3af" />
               <View>
                 <Text className="text-gray-600 font-semibold text-xs">Currently reserved</Text>
-                {property.reservation.expires_at && (
-                  <Text className="text-gray-400 text-xs">Available in {timeUntil(property.reservation.expires_at)}</Text>
+                {reservation.expires_at && (
+                  <Text className="text-gray-400 text-xs">Available in {timeUntil(reservation.expires_at)}</Text>
                 )}
               </View>
             </View>
@@ -386,7 +389,7 @@ export default function PropertyDetailScreen({ route, navigation }: RootScreenPr
                 <View className="flex-row items-center gap-2">
                   <Ionicons name="bookmark-outline" size={18} color="#16a34a" />
                   <Text className="text-primary-600 font-bold text-base">
-                    Reserve Listing (₦{property.reservation.fee.toLocaleString()})
+                    Reserve Listing (₦{reservation.fee.toLocaleString()})
                   </Text>
                 </View>
               )}
