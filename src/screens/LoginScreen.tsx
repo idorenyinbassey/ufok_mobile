@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useAuthStore } from '../stores/auth';
 import type { AuthScreenProps } from '../navigation/types';
+import Logo from '../components/Logo';
 
 export default function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
   const [email, setEmail] = useState('');
@@ -32,9 +33,7 @@ export default function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View className="bg-primary-600 pt-20 pb-12 px-6 items-center">
-          <View className="w-16 h-16 bg-white rounded-2xl items-center justify-center mb-4 shadow-md">
-            <Text className="text-primary-600 text-3xl font-black">U</Text>
-          </View>
+          <Logo size={64} style={{ marginBottom: 16 }} />
           <Text className="text-white text-2xl font-bold">Welcome back</Text>
           <Text className="text-primary-100 text-sm mt-1">Sign in to your Ufok account</Text>
         </View>

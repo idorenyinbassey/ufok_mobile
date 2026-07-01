@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useAuthStore } from '../stores/auth';
 import type { AuthScreenProps } from '../navigation/types';
+import Logo from '../components/Logo';
 
 const ROLES = [
   { value: 'tenant' as const, label: 'Tenant', emoji: '🏠' },
@@ -57,9 +58,7 @@ export default function RegisterScreen({ navigation }: AuthScreenProps<'Register
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View className="bg-primary-600 pt-16 pb-10 px-6 items-center">
-          <View className="w-16 h-16 bg-white rounded-2xl items-center justify-center mb-4 shadow-md">
-            <Text className="text-primary-600 text-3xl font-black">U</Text>
-          </View>
+          <Logo size={64} style={{ marginBottom: 16 }} />
           <Text className="text-white text-2xl font-bold">Create Account</Text>
           <Text className="text-primary-100 text-sm mt-1">Join Ufok today</Text>
         </View>
