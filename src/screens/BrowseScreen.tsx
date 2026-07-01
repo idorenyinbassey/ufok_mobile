@@ -7,6 +7,7 @@ import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import api from '../api/client';
+import { transactionBadge } from '../utils/propertyBadge';
 
 interface Property {
   id: number;
@@ -14,6 +15,7 @@ interface Property {
   title: string;
   price: number;
   type: string;
+  transaction_type: string;
   bedrooms: number;
   bathrooms: number;
   city: string;
@@ -208,7 +210,9 @@ export default function BrowseScreen() {
     }
   };
 
-  const renderProperty = ({ item }: { item: Property }) => (
+  const renderProperty = ({ item }: { item: Property }) => {
+    const badge = transactionBadge(item.transaction_type);
+    return (
     <TouchableOpacity
       className="bg-white rounded-2xl mx-4 mb-4 overflow-hidden border border-gray-100"
       style={{ shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 }}
@@ -226,8 +230,16 @@ export default function BrowseScreen() {
         <View className="absolute top-3 left-3 bg-primary-600 rounded-full px-2.5 py-1">
           <Text className="text-white text-xs font-semibold capitalize">{item.type}</Text>
         </View>
+        {!!badge.label && (
+          <View
+            className="absolute top-3 right-3 rounded-full px-2.5 py-1"
+            style={{ backgroundColor: badge.color }}
+          >
+            <Text className="text-white text-xs font-semibold capitalize">{badge.label}</Text>
+          </View>
+        )}
         <TouchableOpacity
-          className="absolute top-3 right-3 bg-white/90 rounded-full w-8 h-8 items-center justify-center"
+          className="absolute bottom-3 right-3 bg-white/90 rounded-full w-8 h-8 items-center justify-center"
           onPress={() => handleSave(item.id)}
         >
           <Ionicons
@@ -270,7 +282,8 @@ export default function BrowseScreen() {
         )}
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <View className="flex-1 bg-gray-50">

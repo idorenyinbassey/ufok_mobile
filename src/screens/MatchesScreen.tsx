@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import api from '../api/client';
+import { transactionBadge } from '../utils/propertyBadge';
 
 interface MatchProperty {
   id: number;
@@ -13,6 +14,7 @@ interface MatchProperty {
   title: string;
   price: number;
   type: string;
+  transaction_type: string;
   bedrooms: number;
   bathrooms: number;
   city: string;
@@ -93,7 +95,9 @@ export default function MatchesScreen() {
     ]);
   };
 
-  const renderMatch = ({ item }: { item: Match }) => (
+  const renderMatch = ({ item }: { item: Match }) => {
+    const badge = transactionBadge(item.property.transaction_type);
+    return (
     <TouchableOpacity
       className="bg-white rounded-2xl mx-4 mb-4 overflow-hidden border border-gray-100"
       style={{ shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 }}
@@ -120,6 +124,14 @@ export default function MatchesScreen() {
         >
           <Ionicons name="close" size={16} color="#6b7280" />
         </TouchableOpacity>
+        {!!badge.label && (
+          <View
+            className="absolute bottom-3 left-3 rounded-full px-2.5 py-1"
+            style={{ backgroundColor: badge.color }}
+          >
+            <Text className="text-white text-xs font-semibold capitalize">{badge.label}</Text>
+          </View>
+        )}
       </View>
       <View className="p-4">
         <Text className="text-primary-600 font-bold text-lg">
@@ -142,7 +154,8 @@ export default function MatchesScreen() {
         </View>
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <View className="flex-1 bg-gray-50">

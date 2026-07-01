@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
 import type { RootScreenProps } from '../navigation/types';
+import { transactionBadge } from '../utils/propertyBadge';
 
 interface SavedProperty {
   id: number;
@@ -13,6 +14,7 @@ interface SavedProperty {
   title: string;
   price: number;
   type: string;
+  transaction_type: string;
   bedrooms: number;
   bathrooms: number;
   city: string;
@@ -41,7 +43,9 @@ export default function SavedScreen({ navigation }: RootScreenProps<'Saved'>) {
     setRefreshing(false);
   };
 
-  const renderProperty = ({ item }: { item: SavedProperty }) => (
+  const renderProperty = ({ item }: { item: SavedProperty }) => {
+    const badge = transactionBadge(item.transaction_type);
+    return (
     <TouchableOpacity
       className="bg-white rounded-2xl mx-4 mb-4 overflow-hidden border border-gray-100"
       style={{ shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 }}
@@ -63,6 +67,14 @@ export default function SavedScreen({ navigation }: RootScreenProps<'Saved'>) {
         <View className="absolute top-3 left-3 bg-primary-600 rounded-full px-2.5 py-1">
           <Text className="text-white text-xs font-semibold capitalize">{item.type}</Text>
         </View>
+        {!!badge.label && (
+          <View
+            className="absolute top-3 right-3 rounded-full px-2.5 py-1"
+            style={{ backgroundColor: badge.color }}
+          >
+            <Text className="text-white text-xs font-semibold capitalize">{badge.label}</Text>
+          </View>
+        )}
       </View>
 
       <View className="p-4">
@@ -95,7 +107,8 @@ export default function SavedScreen({ navigation }: RootScreenProps<'Saved'>) {
         )}
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
 
   if (loading) {
     return (
