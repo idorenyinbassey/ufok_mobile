@@ -8,6 +8,7 @@ import api from '../api/client';
 import { useAuthStore } from '../stores/auth';
 import type { RootScreenProps } from '../navigation/types';
 import PaymentWebView from '../components/PaymentWebView';
+import { timeUntil } from '../utils/time';
 
 const { width } = Dimensions.get('window');
 
@@ -41,13 +42,6 @@ interface PropertyDetail {
   } | null;
 }
 
-function timeUntil(dateStr: string): string {
-  const diffMs = new Date(dateStr).getTime() - Date.now();
-  if (diffMs <= 0) return 'soon';
-  const hours = Math.round(diffMs / 3_600_000);
-  return hours <= 1 ? '1 hour' : `${hours} hours`;
-}
-
 export default function PropertyDetailScreen({ route, navigation }: RootScreenProps<'PropertyDetail'>) {
   const { slug } = route.params;
   const { user } = useAuthStore();
@@ -62,6 +56,7 @@ export default function PropertyDetailScreen({ route, navigation }: RootScreenPr
   const [paymentUrl, setPaymentUrl] = useState('');
   const [paymentVisible, setPaymentVisible] = useState(false);
   const [paymentMode, setPaymentMode] = useState<'reserve' | 'pay' | null>(null);
+  const [pendingReservationRef, setPendingReservationRef] = useState<string | null>(null);
 
   const fetchProperty = () =>
     api.get(`/properties/${slug}`)
@@ -115,6 +110,7 @@ export default function PropertyDetailScreen({ route, navigation }: RootScreenPr
         return;
       }
       setPaymentMode('reserve');
+      setPendingReservationRef(data.data.reservation?.reference ?? null);
       setPaymentUrl(data.data.authorization_url);
       setPaymentVisible(true);
     } catch (err: any) {
@@ -158,22 +154,32 @@ export default function PropertyDetailScreen({ route, navigation }: RootScreenPr
 
   const handlePaymentClose = async (txRef?: string) => {
     const mode = paymentMode;
+    const pendingRef = pendingReservationRef;
     setPaymentVisible(false);
     setPaymentUrl('');
     setPaymentMode(null);
+    setPendingReservationRef(null);
 
-    if (!txRef || !mode) return;
+    if (!mode) return;
+
+    // The WebView may close without ever redirecting (manual X close, app
+    // backgrounded, network drop). For a reservation, that still leaves an
+    // unpaid hold on the listing — fall back to the reference we captured
+    // at initialize() so it gets released immediately instead of blocking
+    // the property until the reservations:expire cron catches it.
+    const ref = txRef ?? (mode === 'reserve' ? pendingRef ?? undefined : undefined);
+    if (!ref) return;
 
     try {
       if (mode === 'reserve') {
-        const { data } = await api.post('/reservations/activate', { tx_ref: txRef });
+        const { data } = await api.post('/reservations/activate', { tx_ref: ref });
         Alert.alert('Listing Reserved', data.message ?? 'Contact the landlord/agent within 24 hours to keep your reservation active.');
       } else {
-        const { data } = await api.post('/payments/activate', { tx_ref: txRef });
+        const { data } = await api.post('/payments/activate', { tx_ref: ref });
         Alert.alert('Payment Confirmed', data.message ?? 'Your payment is being processed.');
       }
     } catch (err: any) {
-      Alert.alert('Verify Payment', err?.response?.data?.message ?? 'Payment could not be verified. It may take a moment to reflect.');
+      Alert.alert('Payment Not Completed', err?.response?.data?.message ?? 'Payment could not be verified. It may take a moment to reflect.');
     } finally {
       await fetchProperty().catch(() => {});
     }
