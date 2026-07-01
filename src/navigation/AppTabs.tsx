@@ -8,6 +8,7 @@ import PropertiesScreen from '../screens/PropertiesScreen';
 import ConversationListScreen from '../screens/ConversationListScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import NotificationBell from '../components/NotificationBell';
 import type { AppTabsParams } from './types';
 
 const Tab = createBottomTabNavigator<AppTabsParams>();
@@ -29,6 +30,7 @@ export default function AppTabs() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         headerStyle: { backgroundColor: '#fff', shadowColor: 'transparent', elevation: 0 },
         headerTitleStyle: { fontWeight: '700', color: '#111827' },
+        headerRight: () => <NotificationBell />,
         tabBarIcon: ({ focused, color, size }) => {
           const icons: Record<string, string> = {
             Browse: focused ? 'search' : 'search-outline',

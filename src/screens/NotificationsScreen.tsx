@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
+import type { RootScreenProps } from '../navigation/types';
 
 interface Notification {
   id: string;
@@ -12,6 +13,10 @@ interface Notification {
     message: string;
     url?: string;
     type?: string;
+    conversation_id?: number;
+    sender_name?: string;
+    property_id?: number;
+    slug?: string;
   };
   read_at: string | null;
   created_at: string;
@@ -30,7 +35,7 @@ function typeIcon(type?: string): React.ComponentProps<typeof Ionicons>['name'] 
     case 'property_approved': return 'checkmark-circle-outline';
     case 'property_rejected': return 'close-circle-outline';
     case 'new_message': return 'chatbubble-outline';
-    case 'payment': return 'wallet-outline';
+    case 'payment_received': return 'wallet-outline';
     case 'referral': return 'people-outline';
     default: return 'notifications-outline';
   }
@@ -41,13 +46,13 @@ function typeColor(type?: string): string {
     case 'property_approved': return '#16a34a';
     case 'property_rejected': return '#dc2626';
     case 'new_message': return '#2563eb';
-    case 'payment': return '#d97706';
+    case 'payment_received': return '#d97706';
     case 'referral': return '#7c3aed';
     default: return '#6b7280';
   }
 }
 
-export default function NotificationsScreen() {
+export default function NotificationsScreen({ navigation }: RootScreenProps<'Notifications'>) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -72,7 +77,34 @@ export default function NotificationsScreen() {
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n),
     );
-    await api.post('/notifications/mark-read', { id }).catch(() => {});
+    await api.post('/notifications/mark-read', { ids: [id] }).catch(() => {});
+  };
+
+  const handlePress = (item: Notification) => {
+    if (!item.read_at) markRead(item.id);
+
+    const { type, conversation_id, sender_name, slug } = item.data;
+    switch (type) {
+      case 'new_message':
+        if (conversation_id) {
+          navigation.navigate('ChatWindow', {
+            conversationId: conversation_id,
+            title: sender_name ?? 'Chat',
+          });
+        }
+        break;
+      case 'property_approved':
+      case 'property_rejected':
+      case 'inspection':
+        if (slug) navigation.navigate('PropertyDetail', { slug });
+        break;
+      case 'payment_received':
+      case 'referral':
+        navigation.navigate('Wallet');
+        break;
+      default:
+        break;
+    }
   };
 
   const markAllRead = async () => {
@@ -156,9 +188,7 @@ export default function NotificationsScreen() {
           return (
             <TouchableOpacity
               className={`flex-row items-start px-5 py-4 border-b border-gray-100 ${isUnread ? 'bg-green-50' : 'bg-white'}`}
-              onPress={() => {
-                if (isUnread) markRead(item.id);
-              }}
+              onPress={() => handlePress(item)}
               activeOpacity={0.7}
             >
               {/* Icon */}
