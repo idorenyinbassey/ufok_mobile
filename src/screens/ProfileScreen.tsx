@@ -119,7 +119,7 @@ export default function ProfileScreen() {
         <MenuItem icon="heart-outline" label="Saved Properties" onPress={() => navigation.navigate('Saved')} />
         <MenuItem icon="notifications-outline" label="Notifications" onPress={() => navigation.navigate('Notifications')} />
         <MenuItem icon="shield-checkmark-outline" label="Identity Verification (KYC)" onPress={() => navigation.navigate('Kyc')} />
-        <MenuItem icon="calendar-outline" label="My Inspections" onPress={() => navigation.navigate('Inspections', {})} />
+        <MenuItem icon="bookmark-outline" label="My Reservations" onPress={() => navigation.navigate('Reservations')} />
       </View>
 
       {/* Referrals & Rewards */}

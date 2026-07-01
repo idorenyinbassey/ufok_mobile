@@ -19,7 +19,7 @@ interface DashboardData {
 
 const TENANT_ACTIONS = [
   { icon: 'wallet-outline' as const, label: 'Wallet', screen: 'Wallet', params: undefined },
-  { icon: 'calendar-outline' as const, label: 'Inspections', screen: 'Inspections', params: {} },
+  { icon: 'bookmark-outline' as const, label: 'My Reservations', screen: 'Reservations', params: undefined },
   { icon: 'people-outline' as const, label: 'Referrals', screen: 'Referrals', params: undefined },
   { icon: 'trophy-outline' as const, label: 'Leaderboard', screen: 'Leaderboard', params: undefined },
   { icon: 'notifications-outline' as const, label: 'Notifications', screen: 'Notifications', params: undefined },

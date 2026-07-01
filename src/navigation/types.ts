@@ -26,7 +26,7 @@ export type RootStackParams = {
   Wallet: undefined;
   Notifications: undefined;
   Kyc: undefined;
-  Inspections: { propertyId?: number; propertyTitle?: string };
+  Reservations: undefined;
   Subscription: undefined;
   Saved: undefined;
   Referrals: undefined;
@@ -34,6 +34,9 @@ export type RootStackParams = {
   AccountSettings: undefined;
   CreateProperty: undefined;
   EditProperty: { id: number };
+  Support: undefined;
+  NewSupportTicket: undefined;
+  SupportTicketDetail: { id: number };
 };
 
 export type AuthScreenProps<T extends keyof AuthStackParams> = NativeStackScreenProps<AuthStackParams, T>;

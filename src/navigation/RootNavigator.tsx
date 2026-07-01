@@ -10,7 +10,7 @@ import ProfileEditScreen from '../screens/ProfileEditScreen';
 import WalletScreen from '../screens/WalletScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import KycScreen from '../screens/KycScreen';
-import InspectionScreen from '../screens/InspectionScreen';
+import ReservationsScreen from '../screens/ReservationsScreen';
 import SubscriptionScreen from '../screens/SubscriptionScreen';
 import SavedScreen from '../screens/SavedScreen';
 import ReferralScreen from '../screens/ReferralScreen';
@@ -18,6 +18,9 @@ import LeaderboardScreen from '../screens/LeaderboardScreen';
 import AccountSettingsScreen from '../screens/AccountSettingsScreen';
 import CreatePropertyScreen from '../screens/CreatePropertyScreen';
 import EditPropertyScreen from '../screens/EditPropertyScreen';
+import SupportScreen from '../screens/SupportScreen';
+import NewSupportTicketScreen from '../screens/NewSupportTicketScreen';
+import SupportTicketDetailScreen from '../screens/SupportTicketDetailScreen';
 import { navigationRef } from './navigationRef';
 import type { RootStackParams } from './types';
 
@@ -67,9 +70,9 @@ export default function RootNavigator() {
               options={{ headerShown: true, title: 'Identity Verification', headerBackTitle: '' }}
             />
             <Stack.Screen
-              name="Inspections"
-              component={InspectionScreen}
-              options={{ headerShown: true, title: 'Inspections', headerBackTitle: '' }}
+              name="Reservations"
+              component={ReservationsScreen}
+              options={{ headerShown: true, title: 'My Reservations', headerBackTitle: '' }}
             />
             <Stack.Screen
               name="Subscription"
@@ -105,6 +108,21 @@ export default function RootNavigator() {
               name="EditProperty"
               component={EditPropertyScreen}
               options={{ headerShown: true, title: 'Edit Listing', headerBackTitle: '' }}
+            />
+            <Stack.Screen
+              name="Support"
+              component={SupportScreen}
+              options={{ headerShown: true, title: 'Help & Support', headerBackTitle: '' }}
+            />
+            <Stack.Screen
+              name="NewSupportTicket"
+              component={NewSupportTicketScreen}
+              options={{ headerShown: true, title: 'New Ticket', headerBackTitle: '' }}
+            />
+            <Stack.Screen
+              name="SupportTicketDetail"
+              component={SupportTicketDetailScreen}
+              options={{ headerShown: true, title: 'Support Ticket', headerBackTitle: '' }}
             />
           </>
         ) : (
